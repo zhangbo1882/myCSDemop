@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Runtime.InteropServices;
+using System.Threading;
 
 namespace myCSDemop
 {
@@ -12,9 +13,9 @@ namespace myCSDemop
     struct TapAPIApplicationInfo
     {
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 513)]
-        byte [] AuthCode;                              ///< 授权码
+        public byte [] AuthCode;                              ///< 授权码
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 301)]
-        byte [] KeyOperationLogPath;                    ///< 关键操作日志路径
+        public byte [] KeyOperationLogPath;                    ///< 关键操作日志路径
     };
 
 
@@ -84,34 +85,62 @@ namespace myCSDemop
         public byte [] DDASerialNo;         ///< 动态认证码
     };
 
+    struct APIQuoteLoginAuth
+    {
+        public string UserNo;
+        public char ISModifyPassword;
+        public string Password;
+        public string NewPassword;
+        public string QuoteTempPassword;
+        public char ISDDA;
+        public string DDASerialNo;      
+    }
+
     //! 登录反馈信息
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi, Pack = 1)]
     struct TapAPIQuotLoginRspInfo
     {
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 21)]
-        byte [] UserNo;                          ///< 用户名
-        int UserType;                     ///< 用户类型
+        public byte [] UserNo;                          ///< 用户名
+        public int UserType;                     ///< 用户类型
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 21)]
-        byte [] UserName;                        ///< 昵称，GBK编码格式
+        public byte[] UserName;                        ///< 昵称，GBK编码格式
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 21)]
-        byte [] QuoteTempPassword;               ///< 行情临时密码
+        public byte[] QuoteTempPassword;               ///< 行情临时密码
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 51)]
-        byte [] ReservedInfo;                    ///< 用户自己设置的预留信息
+        public byte[] ReservedInfo;                    ///< 用户自己设置的预留信息
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 41)]
-        byte [] LastLoginIP;                 ///< 上次登录的地址
-        UInt32 LastLoginProt;                   ///< 上次登录使用的端口
+        public byte[] LastLoginIP;                 ///< 上次登录的地址
+        UInt32 LastLoginPort;                   ///< 上次登录使用的端口
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 20)]
-        byte [] LastLoginTime;                 ///< 上次登录的时间
+        public byte[] LastLoginTime;                 ///< 上次登录的时间
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 20)]
-        byte [] LastLogoutTime;                    ///< 上次退出的时间
+        public byte[] LastLogoutTime;                    ///< 上次退出的时间
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 11)]
-        byte [] TradeDate;                     ///< 当前交易日期
+        public byte[] TradeDate;                     ///< 当前交易日期
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 20)]
-        byte [] LastSettleTime;                    ///< 上次结算时间
+        public byte[] LastSettleTime;                    ///< 上次结算时间
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 20)]
-        byte [] StartTime;                     ///< 系统启动时间
+        public byte[] StartTime;                     ///< 系统启动时间
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 20)]
-        byte [] InitTime;                      ///< 系统初始化时间
+        public byte[] InitTime;                      ///< 系统初始化时间
+    };
+
+    struct APIQuoteLoginRspInfo
+    {
+        public string UserNo;
+        public Int32 UserType;
+        public string UserName;
+        public string QuoteTempPassword;
+        public string ReserveredInfo;
+        public string LastLoginIP;
+        public UInt32 LastLoginPort;
+        public string LastLoginTime;
+        public string LastLogoutTime;
+        public string TradeDate;
+        public string LastSettleTime;
+        public string StartTime;
+        public string InitTime;
     };
 
 
@@ -222,6 +251,7 @@ namespace myCSDemop
         public int[] array;         
     };
 
+
     class QuoteAPI
     {
         private IntPtr quotePtr;
@@ -232,7 +262,7 @@ namespace myCSDemop
         public static extern IntPtr GetQuoteAPIVersion();
 
         [DllImport("Test.dll", CallingConvention = CallingConvention.Cdecl)]
-        public static extern IntPtr CreateQuoteAPI(string auth, string operation);
+        public static extern IntPtr CreateQuoteAPI(IntPtr applicationInfo, ref Int32 iResult);
 
         [DllImport("Test.dll", CallingConvention = CallingConvention.Cdecl)]
         public static extern void FreeQuoteAPI(IntPtr apiObj);
@@ -253,7 +283,7 @@ namespace myCSDemop
         public static extern int DisconnectQuote(IntPtr apiObj);
 
         [DllImport("Test.dll", CallingConvention = CallingConvention.Cdecl)]
-        public static extern int QryCommodityQuote(IntPtr apiObj, IntPtr sessionID);
+        public static extern int QryCommodityQuote(IntPtr apiObj, out UInt32 sessionID);
 
         [DllImport("Test.dll", CallingConvention = CallingConvention.Cdecl)]
         public static extern int QryContractQuote(IntPtr apiObj, IntPtr sessionID, string exchangeNo, char commodityType, string commodityNo);
@@ -270,9 +300,20 @@ namespace myCSDemop
         [DllImport("Test.dll", CallingConvention = CallingConvention.Cdecl)]
         public static extern void SetDisconnectCB(IntPtr notifyObj, CallbackDelegateDisconnect callback);
 
+        [DllImport("Test.dll", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void SetRspLoginCB(IntPtr notifyObj, CallbackDelegateRspLogin callback);
+
+        [DllImport("Test.dll", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void SetRspQryCommodityCB(IntPtr notifyObj, CallbackDelegateRspQryCommodity callback);
+
         public delegate void CallbackDelegateApiReady();
 
         public delegate void CallbackDelegateDisconnect(int errCode);
+
+        public delegate void CallbackDelegateRspLogin(int errCode, ref TapAPIQuotLoginRspInfo info);
+
+        public delegate void CallbackDelegateRspQryCommodity(UInt32 sessionID, int errCode, byte isLast, ref TapAPIQuoteCommodityInfo info);
+        /*The following functions are callback implementated by ourselves*/
 
         private static void apiReadyCB()
         {
@@ -284,14 +325,53 @@ namespace myCSDemop
             Console.Write("Call Back disconnectCB: {0}\n", errCode);
         }
 
+        private static void rspLoginCB(int errCode,  ref TapAPIQuotLoginRspInfo info)
+        {
+            Console.Write("Call Back rspLoginCB\n");
+            Console.Write("ErrCode: {0}\n", errCode);
+            Console.Write("UserName {0}\n", Encoding.ASCII.GetString(info.UserNo));
+        }
+
+        private static void rspQryCommodityCB(UInt32 sessionID, int errcode, byte isLast, ref TapAPIQuoteCommodityInfo info)
+        {
+            Console.Write("Call Back rspQryCommodityCB\n");
+        }
+
+
         public QuoteAPI(string authCode, string keyOperation)
         {
+            TapAPIApplicationInfo applicationInfo;
+            Int32 iResult = 0;
+            byte[] temp;
+            int len;
             apiVersion = Marshal.PtrToStringAnsi(GetQuoteAPIVersion());
-            quotePtr = CreateQuoteAPI(authCode, keyOperation);
+
+            Console.Write("QuoteAPI Version: {0}\n", apiVersion);
+
+            applicationInfo.AuthCode = new byte[513];
+            temp = Encoding.Default.GetBytes(authCode);
+            len = Encoding.Default.GetByteCount(authCode);
+            ByteToByte(applicationInfo.AuthCode, 513, temp, len);
+
+
+            applicationInfo.KeyOperationLogPath = new byte[301];
+            temp = Encoding.Default.GetBytes(keyOperation);
+            len = Encoding.Default.GetByteCount(keyOperation);
+            ByteToByte(applicationInfo.KeyOperationLogPath, 301, temp, len);
+
+
+            IntPtr applicationInfoPtr = Marshal.AllocHGlobal(Marshal.SizeOf(applicationInfo));
+            Marshal.StructureToPtr(applicationInfo, applicationInfoPtr, false);
+
+            quotePtr = CreateQuoteAPI(applicationInfoPtr, ref iResult);
+
             quoteNotifyPtr = CreateNotifyAPI();
             SetAPINotify(quotePtr, quoteNotifyPtr);
             SetAPIReadyCB(quoteNotifyPtr, apiReadyCB);
             SetDisconnectCB(quoteNotifyPtr, disconnectCB);
+            SetRspLoginCB(quoteNotifyPtr, rspLoginCB);
+            SetRspQryCommodityCB(quoteNotifyPtr, rspQryCommodityCB);
+
         }
 
         ~QuoteAPI()
@@ -305,9 +385,47 @@ namespace myCSDemop
         }
 
         // public int Login(string userNo, char isModifyPassword, string password, string newPassword, string tempPassword, char isDDA, string DDASerialNo)
-        public int Login(IntPtr loginAuth)
+        public int Login(APIQuoteLoginAuth apiLoginAuth)
         {
-            return LoginQuote(quotePtr, loginAuth);
+            TapAPIQuoteLoginAuth loginAuth;
+            byte[] temp;
+            int len;
+
+            loginAuth.UserNo = new byte[21];
+            temp = Encoding.Default.GetBytes(apiLoginAuth.UserNo);
+            len = Encoding.Default.GetByteCount(apiLoginAuth.UserNo);
+            ByteToByte(loginAuth.UserNo, 21, temp, len);
+
+            loginAuth.Password = new byte[21];
+            temp = Encoding.Default.GetBytes(apiLoginAuth.Password);
+            len = Encoding.Default.GetByteCount(apiLoginAuth.Password);
+            ByteToByte(loginAuth.Password, 21, temp, len);
+
+            loginAuth.ISModifyPassword = Convert.ToByte(apiLoginAuth.ISModifyPassword);
+
+            loginAuth.NewPassword = new byte[21];
+            temp = Encoding.Default.GetBytes(apiLoginAuth.NewPassword);
+            len = Encoding.Default.GetByteCount(apiLoginAuth.NewPassword);
+            ByteToByte(loginAuth.NewPassword, 21, temp, len);
+
+            loginAuth.QuoteTempPassword = new byte[21];
+            temp = Encoding.Default.GetBytes(apiLoginAuth.QuoteTempPassword);
+            len = Encoding.Default.GetByteCount(apiLoginAuth.QuoteTempPassword);
+            ByteToByte(loginAuth.QuoteTempPassword, 21, temp, len);
+
+            loginAuth.ISDDA = Convert.ToByte('N');
+
+            loginAuth.DDASerialNo = new byte[31];
+            temp = Encoding.Default.GetBytes(apiLoginAuth.DDASerialNo);
+            len = Encoding.Default.GetByteCount(apiLoginAuth.DDASerialNo);
+            ByteToByte(loginAuth.DDASerialNo, 31, temp, len);
+
+
+            IntPtr loginAuthPtr = Marshal.AllocHGlobal(Marshal.SizeOf(loginAuth));
+            Marshal.StructureToPtr(loginAuth, loginAuthPtr, false);
+
+
+            return LoginQuote(quotePtr, loginAuthPtr);
         }
 
         public int Disconnect()
@@ -315,9 +433,9 @@ namespace myCSDemop
             return DisconnectQuote(quotePtr);
         }
 
-        public int QryCommodity(IntPtr sessionID)
+        public int QryCommodity(out UInt32 sessionID)
         {
-            return QryCommodityQuote(quotePtr, sessionID);
+            return QryCommodityQuote(quotePtr, out sessionID);
         }
 
         public int QryContract(IntPtr sessionID, string exchangeNo, char commodityType, string commodityNo)
@@ -335,6 +453,20 @@ namespace myCSDemop
             return UnSubscribe(quotePtr, sessionID, commodity, contractNo1, strikePrice1, flag1, contractNo2, strikePrice2, flag2);
         }
 
+
+        static void ByteToByte(byte[] s1, int len1, byte[] s2, int len2)
+        {
+            int i;
+            for (i = 0; i < len2; i++)
+            {
+                if (i >= len1)
+                {
+                    break;
+                }
+                s1[i] = s2[i];
+            }
+        }
+
     }
     
     class Program
@@ -345,18 +477,6 @@ namespace myCSDemop
         static string DEFAULT_USERNAME = "ESUNNY";
         static string DEFAULT_PASSWORD = "Es123456";
 
-        static void ByteToByte(byte[] s1, int len1, byte[] s2, int len2)
-        {
-            int i;
-            for (i = 0; i < len2; i++)
-            {
-                if (i>=len1)
-                {
-                    break;
-                }
-                s1[i] = s2[i];
-            }
-        } 
         static void Main(string[] args)
         {
             int err;
@@ -378,38 +498,38 @@ namespace myCSDemop
             }
 
             /*login server*/
-           
-            TapAPIQuoteLoginAuth loginAuth;
-            byte[] temp;
-            int len;
-            loginAuth.UserNo = new byte[21];
-            temp = Encoding.Default.GetBytes(DEFAULT_USERNAME);
-            len = Encoding.Default.GetByteCount(DEFAULT_USERNAME);
-            ByteToByte(loginAuth.UserNo, 21, temp, len);
-
-            loginAuth.Password = new byte[21];
-            temp = Encoding.Default.GetBytes(DEFAULT_PASSWORD);
-            len = Encoding.Default.GetByteCount(DEFAULT_PASSWORD);
-            ByteToByte(loginAuth.Password, 21, temp, len);
-            loginAuth.ISModifyPassword = Convert.ToByte('N');
-            loginAuth.NewPassword = new byte[21];
-            loginAuth.QuoteTempPassword = new byte[21];
-            loginAuth.ISDDA = Convert.ToByte('N');
-            loginAuth.DDASerialNo = new byte[31];
-  
             Console.Write("Login to Server\n");
 
-            IntPtr loginAuthPtr = Marshal.AllocHGlobal(Marshal.SizeOf(loginAuth));
-            Marshal.StructureToPtr(loginAuth, loginAuthPtr, false);
-      
-            err = quoteObj.Login(loginAuthPtr);
+            APIQuoteLoginAuth apiLoginAuth;
+            apiLoginAuth.UserNo = DEFAULT_USERNAME;
+            apiLoginAuth.Password = DEFAULT_PASSWORD;
+            apiLoginAuth.ISModifyPassword = 'N';
+            apiLoginAuth.NewPassword = String.Empty;
+            apiLoginAuth.QuoteTempPassword = String.Empty;
+            apiLoginAuth.ISDDA = 'N';
+            apiLoginAuth.DDASerialNo = String.Empty;
+
+            err = quoteObj.Login(apiLoginAuth);
             if (err != 0)
             {
                 Console.Write("Login Error: %d\n", err);
                 return;
             }
+            Thread.Sleep(2000);
+            /*获取所有品种*/
+            UInt32 sessionID;
+            err = quoteObj.QryCommodity(out sessionID);
+            if (err != 0)
+            {
+                Console.Write("Get all commodity fail， errCode: {0}", err);
+                Console.ReadKey();
+                return;
+            }
+            else
+            {
+                Console.Write("SessionID: {0}\n", sessionID);
+            }
 
-                 
             Console.ReadKey();
             quoteObj.Disconnect();
 
