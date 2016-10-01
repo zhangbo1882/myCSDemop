@@ -38,7 +38,7 @@ namespace myCSDemop
         byte [] ContractNo1;                            ///< 合约代码1
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 11)]
         byte [] StrikePrice1;                           ///< 执行价1
-        char CallOrPutFlag1;                         ///< 看涨看跌标示1
+        byte CallOrPutFlag1;                         ///< 看涨看跌标示1
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 11)]
         byte [] ContractNo2;                            ///< 合约代码2
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 11)]
