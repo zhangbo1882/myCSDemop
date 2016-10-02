@@ -284,6 +284,13 @@ namespace myCSDemop
         public static extern void SetAPINotify(IntPtr apiObj, IntPtr apiNotify);
 
         [DllImport("Test.dll", CallingConvention = CallingConvention.Cdecl)]
+        public static extern int SetQuoteAPIDataPath([MarshalAs(UnmanagedType.LPStr)] string path);
+
+        [DllImport("Test.dll", CallingConvention = CallingConvention.Cdecl)]
+        public static extern int SetQuoteAPILogLevel(byte logLevel);
+
+        [DllImport("Test.dll", CallingConvention = CallingConvention.Cdecl)]
+
         public static extern int SetQuoteHostAddress(IntPtr apiObj, string ip, ushort port);
 
         [DllImport("Test.dll", CallingConvention = CallingConvention.Cdecl)]
@@ -432,6 +439,16 @@ namespace myCSDemop
         ~QuoteAPI()
         {
             FreeQuoteAPI(quotePtr);
+        }
+
+        public int SetAPIDataPath(string path)
+        {
+            return SetQuoteAPIDataPath(path);
+        }
+
+        public int SetAPILogLevel(char logLevel)
+        {
+            return SetQuoteAPILogLevel(Convert.ToByte(logLevel));
         }
 
         public int ConnectQuoteServer(string ip, ushort port)
@@ -641,14 +658,13 @@ namespace myCSDemop
         static void Main(string[] args)
         {
             int err;
-            Test test;
-            test.array = new int[10];
-
-            Console.Write("size: {0}", Marshal.SizeOf(test));
-
+                  
             Console.Write("Create QuoteAPI Object\n");
             QuoteAPI quoteObj = new QuoteAPI(DEFAULT_AUTHCODE, "");
-       
+
+            quoteObj.SetAPIDataPath(@"D:\GitHub\myCSDemop\log");
+            quoteObj.SetAPILogLevel('D');
+           
             /*connect to server*/
             Console.Write("Connect to Server\n");
             err = quoteObj.ConnectQuoteServer(DEFAULT_IP, DEFAULT_PORT);
