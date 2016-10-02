@@ -24,28 +24,47 @@ namespace myCSDemop
     struct TapAPICommodity
     {
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 11)]
-        byte [] ExchangeNo;                             ///< 交易所编码
-        byte CommodityType;                          ///< 品种类型
+        public byte [] ExchangeNo;                             ///< 交易所编码
+        public byte CommodityType;                          ///< 品种类型
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 11)]
-        byte [] CommodityNo;                            ///< 品种编号
+        public byte [] CommodityNo;                            ///< 品种编号
+    };
+
+    struct APICommodity
+    {
+        public string ExchangeNo;
+        public char CommodityType;
+        public string CommodityNo;
     };
 
     //! 合约编码结构
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi, Pack = 1)]
     struct TapAPIContract
     {
-        TapAPICommodity Commodity;                              ///< 品种
+        public TapAPICommodity Commodity;                              ///< 品种
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 11)]
-        byte [] ContractNo1;                            ///< 合约代码1
+        public byte[] ContractNo1;                            ///< 合约代码1
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 11)]
-        byte [] StrikePrice1;                           ///< 执行价1
-        byte CallOrPutFlag1;                         ///< 看涨看跌标示1
+        public byte [] StrikePrice1;                           ///< 执行价1
+        public byte CallOrPutFlag1;                         ///< 看涨看跌标示1
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 11)]
-        byte [] ContractNo2;                            ///< 合约代码2
+        public byte[] ContractNo2;                            ///< 合约代码2
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 11)]
-        byte [] StrikePrice2;                           ///< 执行价2
-        char CallOrPutFlag2;                         ///< 看涨看跌标示2
+        public byte[] StrikePrice2;                           ///< 执行价2
+        public byte CallOrPutFlag2;                         ///< 看涨看跌标示2
     };
+
+    struct APIContract
+    {
+        public APICommodity Commodity;
+        public string ContractNo1;
+        public string StrikePrice1;
+        public char CallOrPutFlag1;
+        public string ContractNo2;
+        public string StrikePrice2;
+        public char CallOrPutFlag2;
+    };
+
 
     //! 交易所信息
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi, Pack = 1)]
@@ -243,15 +262,6 @@ namespace myCSDemop
         UInt64 QTotalAskQty;                   ///< 委卖总量
     };
 
-    //! Test
-    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi, Pack = 1)]
-    struct Test
-    {
-        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 11)]
-        public int[] array;         
-    };
-
-
     class QuoteAPI
     {
         private IntPtr quotePtr;
@@ -286,13 +296,13 @@ namespace myCSDemop
         public static extern int QryCommodityQuote(IntPtr apiObj, out UInt32 sessionID);
 
         [DllImport("Test.dll", CallingConvention = CallingConvention.Cdecl)]
-        public static extern int QryContractQuote(IntPtr apiObj, IntPtr sessionID, string exchangeNo, char commodityType, string commodityNo);
+        public static extern int QryContractQuote(IntPtr apiObj, ref UInt32 sessionID, IntPtr qryReq);
 
         [DllImport("Test.dll", CallingConvention = CallingConvention.Cdecl)]
-        public static extern int Subscribe(IntPtr apiObj, IntPtr sessionID, IntPtr commodity, string contractNo1, string strikePrice1, char flag1, string contractNo2, string strikePrice2, char flag2);
+        public static extern int Subscribe(IntPtr apiObj, ref UInt32 sessionID, IntPtr contract);
 
         [DllImport("Test.dll", CallingConvention = CallingConvention.Cdecl)]
-        public static extern int UnSubscribe(IntPtr apiObj, IntPtr sessionID, IntPtr commodity, string contractNo1, string strikePrice1, char flag1, string contractNo2, string strikePrice2, char flag2);
+        public static extern int UnSubscribe(IntPtr apiObj, ref UInt32 sessionID, IntPtr contract);
 
         [DllImport("Test.dll", CallingConvention = CallingConvention.Cdecl)]
         public static extern void SetAPIReadyCB(IntPtr notifyObj, CallbackDelegateApiReady callback);
@@ -306,6 +316,21 @@ namespace myCSDemop
         [DllImport("Test.dll", CallingConvention = CallingConvention.Cdecl)]
         public static extern void SetRspQryCommodityCB(IntPtr notifyObj, CallbackDelegateRspQryCommodity callback);
 
+        [DllImport("Test.dll", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void SetRspQryContractCB(IntPtr notifyObj, CallbackDelegateRspQryContract callback);
+
+
+        [DllImport("Test.dll", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void SetRspSubscribeQuoteCB(IntPtr notifyObj, CallbackDelegateRspSubscribeQuote callback);
+
+
+        [DllImport("Test.dll", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void SetRspUnSubscribeQuoteCB(IntPtr notifyObj, CallbackDelegateRspUnSubscribeQuote callback);
+
+        [DllImport("Test.dll", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void SetRtnQuoteCB(IntPtr notifyObj, CallbackDelegateRtnQuote callback);
+
+
         public delegate void CallbackDelegateApiReady();
 
         public delegate void CallbackDelegateDisconnect(int errCode);
@@ -313,6 +338,14 @@ namespace myCSDemop
         public delegate void CallbackDelegateRspLogin(int errCode, ref TapAPIQuotLoginRspInfo info);
 
         public delegate void CallbackDelegateRspQryCommodity(UInt32 sessionID, int errCode, byte isLast, ref TapAPIQuoteCommodityInfo info);
+
+        public delegate void CallbackDelegateRspQryContract(UInt32 sessionID, int errCode, byte isLast, ref TapAPIQuoteContractInfo info);
+
+        public delegate void CallbackDelegateRspSubscribeQuote(UInt32 sessionID, int errCode, byte isLast, ref TapAPIQuoteWhole info);
+
+        public delegate void CallbackDelegateRspUnSubscribeQuote(UInt32 sessionID, int errCode, byte isLast, ref TapAPIContract info);
+
+        public delegate void CallbackDelegateRtnQuote(ref TapAPIQuoteWhole info);
         /*The following functions are callback implementated by ourselves*/
 
         private static void apiReadyCB()
@@ -322,21 +355,40 @@ namespace myCSDemop
 
         private static void disconnectCB(int errCode)
         {
-            Console.Write("Call Back disconnectCB: {0}\n", errCode);
+            Console.Write("CallBack disconnectCB: {0}\n", errCode);
         }
 
         private static void rspLoginCB(int errCode,  ref TapAPIQuotLoginRspInfo info)
         {
-            Console.Write("Call Back rspLoginCB\n");
+            Console.Write("CallBack rspLoginCB\n");
             Console.Write("ErrCode: {0}\n", errCode);
             Console.Write("UserName {0}\n", Encoding.ASCII.GetString(info.UserNo));
         }
 
         private static void rspQryCommodityCB(UInt32 sessionID, int errcode, byte isLast, ref TapAPIQuoteCommodityInfo info)
         {
-            Console.Write("Call Back rspQryCommodityCB\n");
+            Console.Write("CallBack rspQryCommodityCB\n");
         }
 
+        private static void rspQryContractCB(UInt32 sessionID, int errcode, byte isLast, ref TapAPIQuoteContractInfo info)
+        {
+            Console.Write("CallBack rspQryContractCB\n");
+        }
+
+        private static void rspSubscribeQuoteCB(UInt32 sessionID, int errcode, byte isLast, ref TapAPIQuoteWhole info)
+        {
+            Console.Write("CallBack rspSubscribeQuoteCB\n");
+        }
+
+        private static void rspUnSubscribeQuoteCB(UInt32 sessionID, int errcode, byte isLast, ref TapAPIContract info)
+        {
+            Console.Write("CallBack rspUnSubscribeQuoteCB\n");
+        }
+
+        private static void rtnQuoteCB(ref TapAPIQuoteWhole info)
+        {
+            Console.Write("CallBack rtnQuoteCB\n");
+        }
 
         public QuoteAPI(string authCode, string keyOperation)
         {
@@ -371,7 +423,10 @@ namespace myCSDemop
             SetDisconnectCB(quoteNotifyPtr, disconnectCB);
             SetRspLoginCB(quoteNotifyPtr, rspLoginCB);
             SetRspQryCommodityCB(quoteNotifyPtr, rspQryCommodityCB);
-
+            SetRspQryContractCB(quoteNotifyPtr, rspQryContractCB);
+            SetRspSubscribeQuoteCB(quoteNotifyPtr, rspSubscribeQuoteCB);
+            SetRspUnSubscribeQuoteCB(quoteNotifyPtr, rspUnSubscribeQuoteCB);
+            SetRtnQuoteCB(quoteNotifyPtr, rtnQuoteCB);
         }
 
         ~QuoteAPI()
@@ -413,7 +468,7 @@ namespace myCSDemop
             len = Encoding.Default.GetByteCount(apiLoginAuth.QuoteTempPassword);
             ByteToByte(loginAuth.QuoteTempPassword, 21, temp, len);
 
-            loginAuth.ISDDA = Convert.ToByte('N');
+            loginAuth.ISDDA = Convert.ToByte(apiLoginAuth.ISDDA);
 
             loginAuth.DDASerialNo = new byte[31];
             temp = Encoding.Default.GetBytes(apiLoginAuth.DDASerialNo);
@@ -438,19 +493,121 @@ namespace myCSDemop
             return QryCommodityQuote(quotePtr, out sessionID);
         }
 
-        public int QryContract(IntPtr sessionID, string exchangeNo, char commodityType, string commodityNo)
+        public int QryContract(UInt32 sessionID, APICommodity apiQryReq)
         {
-            return QryContractQuote(quotePtr, sessionID, exchangeNo, commodityType, commodityNo);
+            TapAPICommodity qryReq;
+            byte[] temp;
+            int len;
+
+            qryReq.ExchangeNo = new byte[11];
+            temp = Encoding.Default.GetBytes(apiQryReq.ExchangeNo);
+            len = Encoding.Default.GetByteCount(apiQryReq.ExchangeNo);
+            ByteToByte(qryReq.ExchangeNo, 11, temp, len);
+
+            qryReq.CommodityNo = new byte[11];
+            temp = Encoding.Default.GetBytes(apiQryReq.CommodityNo);
+            len = Encoding.Default.GetByteCount(apiQryReq.CommodityNo);
+            ByteToByte(qryReq.CommodityNo, 11, temp, len);
+
+            qryReq.CommodityType = Convert.ToByte(apiQryReq.CommodityType);
+
+
+            IntPtr qryReqPtr = Marshal.AllocHGlobal(Marshal.SizeOf(qryReq)); 
+            Marshal.StructureToPtr(qryReq, qryReqPtr, false);
+
+            return QryContractQuote(quotePtr, ref sessionID,  qryReqPtr);
         }
 
-        public int SubscribeQuote(IntPtr sessionID, IntPtr commodity, string contractNo1, string strikePrice1, char flag1, string contractNo2, string strikePrice2, char flag2)
+        public int SubscribeQuote(UInt32 sessionID, APIContract apiContract)
         {
-            return Subscribe(quotePtr, sessionID, commodity, contractNo1, strikePrice1, flag1, contractNo2, strikePrice2, flag2);
+            TapAPIContract contract;
+            byte[] temp;
+            int len;
+
+            contract.Commodity.ExchangeNo = new byte[11];
+            temp = Encoding.Default.GetBytes(apiContract.Commodity.ExchangeNo);
+            len = Encoding.Default.GetByteCount(apiContract.Commodity.ExchangeNo);
+            ByteToByte(contract.Commodity.ExchangeNo, 11, temp, len);
+
+            contract.Commodity.CommodityNo = new byte[11];
+            temp = Encoding.Default.GetBytes(apiContract.Commodity.CommodityNo);
+            len = Encoding.Default.GetByteCount(apiContract.Commodity.CommodityNo);
+            ByteToByte(contract.Commodity.CommodityNo, 11, temp, len);
+
+            contract.Commodity.CommodityType = Convert.ToByte(apiContract.Commodity.CommodityType);
+            contract.CallOrPutFlag1 = Convert.ToByte(apiContract.CallOrPutFlag1);
+            contract.CallOrPutFlag2 = Convert.ToByte(apiContract.CallOrPutFlag2);
+
+            contract.ContractNo1 = new byte[11];
+            temp = Encoding.Default.GetBytes(apiContract.ContractNo1);
+            len = Encoding.Default.GetByteCount(apiContract.ContractNo1);
+            ByteToByte(contract.ContractNo1, 11, temp, len);
+
+            contract.ContractNo2 = new byte[11];
+            temp = Encoding.Default.GetBytes(apiContract.ContractNo2);
+            len = Encoding.Default.GetByteCount(apiContract.ContractNo2);
+            ByteToByte(contract.ContractNo2, 11, temp, len);
+
+            contract.StrikePrice1 = new byte[11];
+            temp = Encoding.Default.GetBytes(apiContract.StrikePrice1);
+            len = Encoding.Default.GetByteCount(apiContract.StrikePrice1);
+            ByteToByte(contract.StrikePrice1, 11, temp, len);
+
+            contract.StrikePrice2 = new byte[11];
+            temp = Encoding.Default.GetBytes(apiContract.StrikePrice2);
+            len = Encoding.Default.GetByteCount(apiContract.StrikePrice2);
+            ByteToByte(contract.StrikePrice2, 11, temp, len);
+
+            IntPtr contractPtr = Marshal.AllocHGlobal(Marshal.SizeOf(contract));
+            Marshal.StructureToPtr(contract, contractPtr, false);
+
+            return Subscribe(quotePtr, ref sessionID, contractPtr);
         }
 
-        public int UnSubscribeQuote(IntPtr sessionID, IntPtr commodity, string contractNo1, string strikePrice1, char flag1, string contractNo2, string strikePrice2, char flag2)
+        public int UnSubscribeQuote(UInt32 sessionID, APIContract apiContract)
         {
-            return UnSubscribe(quotePtr, sessionID, commodity, contractNo1, strikePrice1, flag1, contractNo2, strikePrice2, flag2);
+            TapAPIContract contract;
+            byte[] temp;
+            int len;
+
+            contract.Commodity.ExchangeNo = new byte[11];
+            temp = Encoding.Default.GetBytes(apiContract.Commodity.ExchangeNo);
+            len = Encoding.Default.GetByteCount(apiContract.Commodity.ExchangeNo);
+            ByteToByte(contract.Commodity.ExchangeNo, 11, temp, len);
+
+            contract.Commodity.CommodityNo = new byte[11];
+            temp = Encoding.Default.GetBytes(apiContract.Commodity.CommodityNo);
+            len = Encoding.Default.GetByteCount(apiContract.Commodity.CommodityNo);
+            ByteToByte(contract.Commodity.CommodityNo, 11, temp, len);
+
+            contract.Commodity.CommodityType = Convert.ToByte(apiContract.Commodity.CommodityType);
+            contract.CallOrPutFlag1 = Convert.ToByte(apiContract.CallOrPutFlag1);
+            contract.CallOrPutFlag2 = Convert.ToByte(apiContract.CallOrPutFlag2);
+
+            contract.ContractNo1 = new byte[11];
+            temp = Encoding.Default.GetBytes(apiContract.ContractNo1);
+            len = Encoding.Default.GetByteCount(apiContract.ContractNo1);
+            ByteToByte(contract.ContractNo1, 11, temp, len);
+
+            contract.ContractNo2 = new byte[11];
+            temp = Encoding.Default.GetBytes(apiContract.ContractNo2);
+            len = Encoding.Default.GetByteCount(apiContract.ContractNo2);
+            ByteToByte(contract.ContractNo2, 11, temp, len);
+
+            contract.StrikePrice1 = new byte[11];
+            temp = Encoding.Default.GetBytes(apiContract.StrikePrice1);
+            len = Encoding.Default.GetByteCount(apiContract.StrikePrice1);
+            ByteToByte(contract.StrikePrice1, 11, temp, len);
+
+            contract.StrikePrice2 = new byte[11];
+            temp = Encoding.Default.GetBytes(apiContract.StrikePrice2);
+            len = Encoding.Default.GetByteCount(apiContract.StrikePrice2);
+            ByteToByte(contract.StrikePrice2, 11, temp, len);
+
+            IntPtr contractPtr = Marshal.AllocHGlobal(Marshal.SizeOf(contract));
+            Marshal.StructureToPtr(contract, contractPtr, false);
+
+            return UnSubscribe(quotePtr, ref sessionID, contractPtr);
         }
 
 
@@ -476,6 +633,10 @@ namespace myCSDemop
         static ushort DEFAULT_PORT = 7171;
         static string DEFAULT_USERNAME = "ESUNNY";
         static string DEFAULT_PASSWORD = "Es123456";
+        static string DEFAULT_EXCHANGE_NO = ("HKEX");
+        static string DEFAULT_COMMODITY_NO = "HSI";
+        static string DEFAULT_CONTRACT_NO = "1604";
+
 
         static void Main(string[] args)
         {
@@ -530,6 +691,33 @@ namespace myCSDemop
                 Console.Write("SessionID: {0}\n", sessionID);
             }
 
+            /*获取合约*/
+          
+            APICommodity com;
+            com.CommodityNo = DEFAULT_COMMODITY_NO;
+            com.ExchangeNo = DEFAULT_EXCHANGE_NO;
+            com.CommodityType = 'F';
+            quoteObj.QryContract(0, com);
+
+
+            /*订阅合约*/
+            APIContract stContract;
+            stContract.Commodity.ExchangeNo = DEFAULT_EXCHANGE_NO;
+            stContract.Commodity.CommodityType = 'F';
+            stContract.Commodity.CommodityNo = DEFAULT_COMMODITY_NO;
+            stContract.ContractNo1 = "1612";
+            stContract.ContractNo2 = "1619";
+            stContract.StrikePrice1 = String.Empty;
+            stContract.StrikePrice2 = String.Empty;
+            stContract.CallOrPutFlag1 = 'N';
+            stContract.CallOrPutFlag2 = 'N';
+            quoteObj.SubscribeQuote(sessionID, stContract);
+
+            /*退订合约*/
+            Console.ReadKey();
+            quoteObj.UnSubscribeQuote(sessionID, stContract);
+
+            /*断开连接*/
             Console.ReadKey();
             quoteObj.Disconnect();
 
