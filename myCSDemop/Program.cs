@@ -5,9 +5,46 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Runtime.InteropServices;
 using System.Threading;
+using System.IO;
 
 namespace myCSDemop
 {
+    class Log
+    {
+        public static FileStream fs;
+        public static StreamWriter sw;
+        public Log (string logFilePath, string logFileName)
+        {
+            string fileName;
+            if (!Directory.Exists(logFilePath))//验证路径是否存在
+            {
+                Console.Write("path does not exist\n");
+                Directory.CreateDirectory(logFilePath);
+                //不存在则创建
+            }
+            fileName = logFilePath + "\\" + logFileName; //文件的绝对路径
+            //fileName = logFileName; //文件的绝对路径
+            if (File.Exists(fileName))
+            //验证文件是否存在，有则追加，无则创建
+            {
+                Console.Write("file already exists\n");
+                fs = new FileStream(fileName, FileMode.Append, FileAccess.Write);
+            }
+            else
+            {
+                Console.Write("file does not exist\n");
+                fs = new FileStream(fileName, FileMode.Create, FileAccess.Write);
+            }
+            sw = new StreamWriter(fs);
+        }
+
+        public void WriteLog(string logMsg, params object[] list)
+        {
+            sw.WriteLine(DateTime.Now.ToString("yyyy-MM-dd HH-mm-ss") + "   ---   " + logMsg, list);
+            sw.Flush();
+        }
+    };
+
     //! Application信息
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi, Pack = 1)]
     struct TapAPIApplicationInfo
@@ -130,7 +167,7 @@ namespace myCSDemop
         public byte[] ReservedInfo;                    ///< 用户自己设置的预留信息
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 41)]
         public byte[] LastLoginIP;                 ///< 上次登录的地址
-        UInt32 LastLoginPort;                   ///< 上次登录使用的端口
+        public UInt32 LastLoginPort;                   ///< 上次登录使用的端口
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 20)]
         public byte[] LastLoginTime;                 ///< 上次登录的时间
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 20)]
@@ -167,24 +204,35 @@ namespace myCSDemop
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi, Pack = 1)]
     struct TapAPIQuoteCommodityInfo
     {
-        TapAPICommodity Commodity;                          ///< 品种
+        public TapAPICommodity Commodity;                          ///< 品种
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 21)]
-        byte [] CommodityName;                       ///< 品种名称,GBK编码格式
+        public byte [] CommodityName;                       ///< 品种名称,GBK编码格式
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 31)]
-        byte [] CommodityEngName;                    ///< 品种英文名称
-        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 65)]
-        byte [] ContractSize;                        ///< 每手乘数
-        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 65)]
-        byte [] CommodityTickSize;                   ///< 最小变动价位
-        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 33)]
-        byte [] CommodityDenominator;             ///< 报价分母
-        byte CmbDirect;                         ///< 组合方向
-        Int32 CommodityContractLen;             ///< 品种合约年限
-        byte IsDST;                               ///< 是否夏令时,'Y'为是,'N'为否
-        TapAPICommodity RelateCommodity1;                   ///< 关联品种1
-        TapAPICommodity RelateCommodity2;                   ///< 关联品种2
+        public byte [] CommodityEngName;                    ///< 品种英文名称
+        public double ContractSize;                        ///< 每手乘数
+        public double CommodityTickSize;                   ///< 最小变动价位
+        public Int32 CommodityDenominator;             ///< 报价分母
+        public byte CmbDirect;                         ///< 组合方向
+        public Int32 CommodityContractLen;             ///< 品种合约年限
+        public byte IsDST;                               ///< 是否夏令时,'Y'为是,'N'为否
+        public TapAPICommodity RelateCommodity1;                   ///< 关联品种1
+        public TapAPICommodity RelateCommodity2;                   ///< 关联品种2
     };
 
+    struct APIQuoteCommodityInfo
+    {
+        public APICommodity Commodity;
+        public string CommodityName;
+        public string CommodityEngName;
+        public double ContractSize;
+        public double CommodityTickSize;
+        public Int32 CommodityDenominator;
+        public char CmbDirect;
+        public Int32 CommodityContractLen;
+        public char IsDST;
+        public APICommodity RelateCommodity1;
+        public APICommodity RelateCommodity2;  
+    }
 
     //! 行情合约信息
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi, Pack = 1)]
@@ -208,58 +256,58 @@ namespace myCSDemop
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi, Pack = 1)]
     struct TapAPIQuoteWhole
     {
-        TapAPIContract Contract;                        ///< 合约
+        public TapAPIContract Contract;                        ///< 合约
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 11)]
-        byte [] CurrencyNo;                      ///< 币种编号
-        byte TradingState;                  ///< 交易状态。1,集合竞价;2,集合竞价撮合;3,连续交易;4,交易暂停;5,闭市
+        public byte[] CurrencyNo;                      ///< 币种编号
+        public byte TradingState;                  ///< 交易状态。1,集合竞价;2,集合竞价撮合;3,连续交易;4,交易暂停;5,闭市
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 24)]
-        byte [] DateTimeStamp;                  ///< 时间戳
-        double QPreClosingPrice;                ///< 昨收盘价
-        double QPreSettlePrice;             ///< 昨结算价
-        UInt64 QPrePositionQty;                ///< 昨持仓量
-        double QOpeningPrice;                   ///< 开盘价
-        double QLastPrice;                      ///< 最新价
-        double QHighPrice;                      ///< 最高价
-        double QLowPrice;                       ///< 最低价
-        double QHisHighPrice;                   ///< 历史最高价
-        double QHisLowPrice;                    ///< 历史最低价
-        double QLimitUpPrice;                   ///< 涨停价
-        double QLimitDownPrice;             ///< 跌停价
-        UInt64 QTotalQty;                      ///< 当日总成交量
-        double QTotalTurnover;                  ///< 当日成交金额
-        UInt64 QPositionQty;                   ///< 持仓量
-        double QAveragePrice;                   ///< 均价
-        double QClosingPrice;                   ///< 收盘价
-        double QSettlePrice;                    ///< 结算价
-        UInt64 QLastQty;                       ///< 最新成交量
+        public byte[] DateTimeStamp;                  ///< 时间戳
+        public double QPreClosingPrice;                ///< 昨收盘价
+        public double QPreSettlePrice;             ///< 昨结算价
+        public UInt64 QPrePositionQty;                ///< 昨持仓量
+        public double QOpeningPrice;                   ///< 开盘价
+        public double QLastPrice;                      ///< 最新价
+        public double QHighPrice;                      ///< 最高价
+        public double QLowPrice;                       ///< 最低价
+        public double QHisHighPrice;                   ///< 历史最高价
+        public double QHisLowPrice;                    ///< 历史最低价
+        public double QLimitUpPrice;                   ///< 涨停价
+        public double QLimitDownPrice;             ///< 跌停价
+        public UInt64 QTotalQty;                      ///< 当日总成交量
+        public double QTotalTurnover;                  ///< 当日成交金额
+        public UInt64 QPositionQty;                   ///< 持仓量
+        public double QAveragePrice;                   ///< 均价
+        public double QClosingPrice;                   ///< 收盘价
+        public double QSettlePrice;                    ///< 结算价
+        public UInt64 QLastQty;                       ///< 最新成交量
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 20)]
-        double[] QBidPrice;                   ///< 买价1-20档
+        public double[] QBidPrice;                   ///< 买价1-20档
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 20)]
-        UInt64[] QBidQty;                    ///< 买量1-20档
+        public UInt64[] QBidQty;                    ///< 买量1-20档
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 20)]
-        double[] QAskPrice;                   ///< 卖价1-20档
+        public double[] QAskPrice;                   ///< 卖价1-20档
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 20)]
-        UInt64[] QAskQty;                    ///< 卖量1-20档
-        double QImpliedBidPrice;                ///< 隐含买价
-        UInt64 QImpliedBidQty;                 ///< 隐含买量
-        double QImpliedAskPrice;                ///< 隐含卖价
-        UInt64 QImpliedAskQty;                 ///< 隐含卖量
-        double QPreDelta;                       ///< 昨虚实度
-        double QCurrDelta;                      ///< 今虚实度
-        UInt64 QInsideQty;                     ///< 内盘量
-        UInt64 QOutsideQty;                    ///< 外盘量
-        double QTurnoverRate;                   ///< 换手率
-        UInt64 Q5DAvgQty;                      ///< 五日均量
-        double QPERatio;                        ///< 市盈率
-        double QTotalValue;                 ///< 总市值
-        double QNegotiableValue;                ///< 流通市值
-        Int64 QPositionTrend;                   ///< 持仓走势
-        double QChangeSpeed;                    ///< 涨速
-        double QChangeRate;                 ///< 涨幅
-        double QChangeValue;                    ///< 涨跌值
-        double QSwing;                          ///< 振幅
-        UInt64 QTotalBidQty;                   ///< 委买总量
-        UInt64 QTotalAskQty;                   ///< 委卖总量
+        public UInt64[] QAskQty;                    ///< 卖量1-20档
+        public double QImpliedBidPrice;                ///< 隐含买价
+        public UInt64 QImpliedBidQty;                 ///< 隐含买量
+        public double QImpliedAskPrice;                ///< 隐含卖价
+        public UInt64 QImpliedAskQty;                 ///< 隐含卖量
+        public double QPreDelta;                       ///< 昨虚实度
+        public double QCurrDelta;                      ///< 今虚实度
+        public UInt64 QInsideQty;                     ///< 内盘量
+        public UInt64 QOutsideQty;                    ///< 外盘量
+        public double QTurnoverRate;                   ///< 换手率
+        public UInt64 Q5DAvgQty;                      ///< 五日均量
+        public double QPERatio;                        ///< 市盈率
+        public double QTotalValue;                 ///< 总市值
+        public double QNegotiableValue;                ///< 流通市值
+        public Int64 QPositionTrend;                   ///< 持仓走势
+        public double QChangeSpeed;                    ///< 涨速
+        public double QChangeRate;                 ///< 涨幅
+        public double QChangeValue;                    ///< 涨跌值
+        public double QSwing;                          ///< 振幅
+        public UInt64 QTotalBidQty;                   ///< 委买总量
+        public UInt64 QTotalAskQty;                   ///< 委卖总量
     };
 
     class QuoteAPI
@@ -367,15 +415,67 @@ namespace myCSDemop
 
         private static void rspLoginCB(int errCode,  ref TapAPIQuotLoginRspInfo info)
         {
+            APIQuoteLoginRspInfo data;
             Console.Write("CallBack rspLoginCB\n");
             Console.Write("ErrCode: {0}\n", errCode);
-            Console.Write("UserName {0}\n", Encoding.ASCII.GetString(info.UserNo));
+
+            data.UserNo = Encoding.Default.GetString(info.UserNo);
+            data.UserType = info.UserType;
+            data.UserName = Encoding.Default.GetString(info.UserName);
+            data.QuoteTempPassword = Encoding.Default.GetString(info.QuoteTempPassword);
+            data.ReserveredInfo = Encoding.Default.GetString(info.ReservedInfo);
+            data.LastLoginIP = Encoding.Default.GetString(info.LastLoginIP);
+            data.LastLoginPort = info.LastLoginPort;
+            data.LastLoginTime = Encoding.Default.GetString(info.LastLoginTime);
+            data.LastLogoutTime = Encoding.Default.GetString(info.LastLogoutTime);
+            data.LastSettleTime = Encoding.Default.GetString(info.LastSettleTime);
+            data.StartTime = Encoding.Default.GetString(info.StartTime);
+            data.InitTime = Encoding.Default.GetString(info.InitTime);
+        }
+
+        public static void dumpCommodity(APICommodity com)
+        {
+            Console.WriteLine("CommodityNo: {0}", com.CommodityNo);
+            Console.WriteLine("CommodityType: {0}", com.CommodityType);
+            Console.WriteLine("ExchangeNo: {0}", com.ExchangeNo);
+        }
+
+        public static void dumpComInfo(APIQuoteCommodityInfo info)
+        {
+            dumpCommodity(info.Commodity);
+            Console.WriteLine("CommodityName: {0}", info.CommodityName);
+            Console.WriteLine("CommodityEngName: {0}", info.CommodityEngName);
+            Console.WriteLine("ContractSize: {0}", info.ContractSize);
+            Console.WriteLine("CommodityTickSize: {0}", info.CommodityTickSize);
+            Console.WriteLine("CommodityDenominator: {0}", info.CommodityDenominator);
+            Console.WriteLine("CmbDirect: {0}", info.CmbDirect);
+            Console.WriteLine("CommodityContractLen: {0}", info.CommodityContractLen);
+            Console.WriteLine("IsDST: {0}", info.IsDST);
+        }
+        private static void commodityConvert(TapAPICommodity com1, out APICommodity com2)
+        {
+            com2.CommodityNo = Encoding.Default.GetString(com1.CommodityNo);
+            com2.CommodityType = Convert.ToChar(com1.CommodityType);
+            com2.ExchangeNo = Encoding.Default.GetString(com1.ExchangeNo);
         }
 
         private static void rspQryCommodityCB(UInt32 sessionID, int errcode, byte isLast, ref TapAPIQuoteCommodityInfo info)
         {
+            APIQuoteCommodityInfo data;
             Console.Write("CallBack rspQryCommodityCB\n");
-        }
+            commodityConvert(info.Commodity, out data.Commodity);
+            commodityConvert(info.RelateCommodity1, out data.RelateCommodity1);
+            commodityConvert(info.RelateCommodity2, out data.RelateCommodity2);
+            data.CommodityName = Encoding.Default.GetString(info.CommodityName);
+            data.CommodityEngName = Encoding.Default.GetString(info.CommodityEngName);
+            data.ContractSize = info.ContractSize;
+            data.CommodityTickSize = info.CommodityTickSize;
+            data.CommodityDenominator = info.CommodityDenominator;
+            data.CmbDirect = Convert.ToChar(info.CmbDirect);
+            data.CommodityContractLen = info.CommodityContractLen;
+            data.IsDST = Convert.ToChar(info.IsDST);
+            dumpComInfo(data);
+         }
 
         private static void rspQryContractCB(UInt32 sessionID, int errcode, byte isLast, ref TapAPIQuoteContractInfo info)
         {
@@ -395,6 +495,7 @@ namespace myCSDemop
         private static void rtnQuoteCB(ref TapAPIQuoteWhole info)
         {
             Console.Write("CallBack rtnQuoteCB\n");
+            Console.WriteLine("TimeStamp： {0}", Encoding.Default.GetString(info.DateTimeStamp));
         }
 
         public QuoteAPI(string authCode, string keyOperation)
@@ -423,6 +524,12 @@ namespace myCSDemop
             Marshal.StructureToPtr(applicationInfo, applicationInfoPtr, false);
 
             quotePtr = CreateQuoteAPI(applicationInfoPtr, ref iResult);
+
+            if (quotePtr == IntPtr.Zero)
+            {
+                Console.Write("Create Quote failure. ErrCode: {0}\n", iResult);
+                return;
+            }
 
             quoteNotifyPtr = CreateNotifyAPI();
             SetAPINotify(quotePtr, quoteNotifyPtr);
@@ -456,7 +563,6 @@ namespace myCSDemop
             return SetQuoteHostAddress(quotePtr, ip, port);
         }
 
-        // public int Login(string userNo, char isModifyPassword, string password, string newPassword, string tempPassword, char isDDA, string DDASerialNo)
         public int Login(APIQuoteLoginAuth apiLoginAuth)
         {
             TapAPIQuoteLoginAuth loginAuth;
@@ -492,10 +598,8 @@ namespace myCSDemop
             len = Encoding.Default.GetByteCount(apiLoginAuth.DDASerialNo);
             ByteToByte(loginAuth.DDASerialNo, 31, temp, len);
 
-
             IntPtr loginAuthPtr = Marshal.AllocHGlobal(Marshal.SizeOf(loginAuth));
             Marshal.StructureToPtr(loginAuth, loginAuthPtr, false);
-
 
             return LoginQuote(quotePtr, loginAuthPtr);
         }
@@ -657,10 +761,12 @@ namespace myCSDemop
 
         static void Main(string[] args)
         {
-            int err;
-                  
-            Console.Write("Create QuoteAPI Object\n");
-            QuoteAPI quoteObj = new QuoteAPI(DEFAULT_AUTHCODE, "");
+            int err = 0;
+            Log myLog = new Log(@"D:\GitHub\myCSDemop\debugLog", "debug.log");
+
+            myLog.WriteLog("Create QuoteAPI Object");
+ 
+            QuoteAPI quoteObj = new QuoteAPI(DEFAULT_AUTHCODE, @"D:\GitHub\myCSDemop\log");
 
             quoteObj.SetAPIDataPath(@"D:\GitHub\myCSDemop\log");
             quoteObj.SetAPILogLevel('D');
@@ -670,7 +776,7 @@ namespace myCSDemop
             err = quoteObj.ConnectQuoteServer(DEFAULT_IP, DEFAULT_PORT);
             if (err != 0)
             {
-                Console.Write("Connect to Server Error: %d\n", err);
+                myLog.WriteLog("Connect to Server Error: %d\n", err);
                 return;
             }
 
