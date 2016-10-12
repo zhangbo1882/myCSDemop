@@ -400,7 +400,7 @@ namespace myCSDemop
 
         [DllImport("Test.dll", CallingConvention = CallingConvention.Cdecl)]
 
-        public static extern int SetQuoteHostAddress(IntPtr apiObj, string ip, ushort port);
+        public static extern int SetQuoteHostAddress(IntPtr apiObj, [MarshalAs(UnmanagedType.LPStr)] string ip, ushort port);
 
         [DllImport("Test.dll", CallingConvention = CallingConvention.Cdecl)]
         public static extern int LoginQuote(IntPtr apiObj,  IntPtr  loginAuth);
